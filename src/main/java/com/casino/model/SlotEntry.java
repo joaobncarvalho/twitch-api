@@ -1,0 +1,28 @@
+package com.casino.model;
+
+import org.bson.codecs.pojo.annotations.BsonProperty;
+import org.bson.types.ObjectId;
+
+public class SlotEntry {
+    @BsonProperty("bonus_hunt_id")
+    public ObjectId bonusHuntId;
+
+    @BsonProperty("slot_id")
+    public ObjectId slotId;
+
+    @BsonProperty("name")  // 🔹 Adiciona o nome no modelo
+    public String name;
+
+    @BsonProperty("bet")
+    public double bet;
+
+    @BsonProperty("win")
+    public double win;
+
+    @BsonProperty("extraScatters")
+    public boolean extraScatters;
+
+    @BsonProperty("superMode")
+    public boolean superMode;
+}
+

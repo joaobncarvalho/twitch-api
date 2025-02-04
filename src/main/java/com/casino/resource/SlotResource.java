@@ -2,6 +2,7 @@ package com.casino.resource;
 
 import com.casino.model.BonusHunt;
 import com.casino.model.Slot;
+import com.casino.model.SlotEntry;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -34,7 +35,7 @@ public class SlotResource {
     @Path("/bonus-hunts/{id}/slots")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response addSlotToBonusHunt(@PathParam("id") String id, Slot slot) {
+    public Response addSlotToBonusHunt(@PathParam("id") String id, SlotEntry slot) {
         BonusHunt hunt = BonusHunt.findById(new ObjectId(id));
         if (hunt == null) {
             return Response.status(Response.Status.NOT_FOUND).build();

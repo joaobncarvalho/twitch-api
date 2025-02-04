@@ -20,6 +20,9 @@ public class Slot extends PanacheMongoEntity {
     @BsonProperty("provider")
     public String provider;
 
+    @BsonProperty("superMode")
+    public boolean superMode;
+
     // Novos atributos
     @BsonProperty("bonus_profit")
     public double bonusProfit;  // % esperado ao ativar bônus
