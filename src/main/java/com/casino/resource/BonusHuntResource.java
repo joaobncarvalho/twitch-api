@@ -4,6 +4,7 @@ import com.casino.model.BonusHunt;
 import com.casino.model.BonusHuntSlotEntry;
 import com.casino.model.Slot;
 import com.casino.model.SlotEntry;
+import io.vertx.core.json.JsonObject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.MediaType;
@@ -13,6 +14,7 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Path("/bonus-hunt")
@@ -29,6 +31,8 @@ public class BonusHuntResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response createBonusHunt(BonusHunt bonusHunt) {
+        bonusHunt.breakEvenInicial = 0;  // Inicializa como 0
+        bonusHunt.breakEvenAtual = 0;
         System.out.println("🔍 JSON recebido: " + bonusHunt);
 
         if (bonusHunt.startAmount == 0) {
@@ -136,6 +140,73 @@ public class BonusHuntResource {
         hunt.persistOrUpdate();
         return Response.noContent().build();
     }
+    @PUT
+    @Path("/{id}/calculate-breakeven-inicial")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response calcularBreakEvenInicial(@PathParam("id") String id) {
+        BonusHunt bonusHunt = BonusHunt.findById(new ObjectId(id));
+
+        if (bonusHunt == null || bonusHunt.slots.isEmpty()) {
+            return Response.status(Response.Status.NOT_FOUND).entity("Bonus Hunt não encontrada ou sem slots.").build();
+        }
+
+        double totalBet = bonusHunt.slots.stream().mapToDouble(slot -> slot.bet).sum();
+
+        if (totalBet == 0) {
+            return Response.status(Response.Status.BAD_REQUEST).entity("Não há apostas para calcular o BE.").build();
+        }
+
+        bonusHunt.breakEvenInicial = bonusHunt.startAmount / totalBet;
+        bonusHunt.persistOrUpdate();
+
+        return Response.ok(Map.of("breakEvenInicial", bonusHunt.breakEvenInicial)).build();
+    }
+
+    @PUT
+    @Path("/{id}/calculate-breakeven-atual")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response calcularBreakEvenAtual(@PathParam("id") String id, List<SlotEntry> slotsAtualizados) {
+        BonusHunt bonusHunt = BonusHunt.findById(new ObjectId(id));
+
+        if (bonusHunt == null || bonusHunt.slots.isEmpty()) {
+            return Response.status(Response.Status.NOT_FOUND).entity("Bonus Hunt não encontrada ou sem slots.").build();
+        }
+
+        // Atualiza os valores das WIN das slots
+        for (SlotEntry updatedSlot : slotsAtualizados) {
+            bonusHunt.slots.stream()
+                    .filter(slot -> slot.slotId.equals(updatedSlot.slotId))
+                    .forEach(slot -> slot.win = updatedSlot.win);
+        }
+
+        // Soma todas as wins já registradas
+        double totalWinsRegistradas = bonusHunt.slots.stream()
+                .mapToDouble(slot -> slot.win)
+                .sum();
+
+        // Conta quantos slots ainda não foram jogados
+        long slotsRestantes = bonusHunt.slots.stream()
+                .filter(slot -> slot.win == 0)
+                .count();
+
+        // Evita divisão por zero
+        if (slotsRestantes > 0) {
+            bonusHunt.breakEvenAtual = (bonusHunt.startAmount - totalWinsRegistradas) / slotsRestantes;
+        } else {
+            bonusHunt.breakEvenAtual = 0; // Todos os slots rodaram, BE não precisa ser calculado
+        }
+
+        bonusHunt.persistOrUpdate();
+
+        return Response.ok(Map.of("breakEvenAtual", bonusHunt.breakEvenAtual)).build();
+    }
+
+
+
+
+
+
 
 
 

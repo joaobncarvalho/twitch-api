@@ -1,8 +1,10 @@
 package com.casino.model;
 
 import io.quarkus.mongodb.panache.PanacheMongoEntity;
+import lombok.Data;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 
+@Data
 public class Slot extends PanacheMongoEntity {
 
     @BsonProperty("name")
@@ -19,6 +21,12 @@ public class Slot extends PanacheMongoEntity {
 
     @BsonProperty("provider")
     public String provider;
+
+    @BsonProperty("bet")
+    public double bet = 0;
+
+    @BsonProperty("win")// Valor da aposta
+    public double win = 0;
 
     @BsonProperty("superMode")
     public boolean superMode;
