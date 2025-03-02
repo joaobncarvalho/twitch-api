@@ -1,11 +1,13 @@
 package com.casino.model;
 
 import lombok.Data;
+import org.bson.codecs.pojo.annotations.BsonId;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.types.ObjectId;
 
 @Data
 public class SlotEntry {
+
     @BsonProperty("bonus_hunt_id")
     public ObjectId bonusHuntId;
 
@@ -26,5 +28,8 @@ public class SlotEntry {
 
     @BsonProperty("superMode")
     public boolean superMode;
+
+    @BsonProperty("imageBase64")
+    public String imageBase64;
 }
 

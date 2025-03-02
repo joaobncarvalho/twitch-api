@@ -74,23 +74,22 @@ public class BonusHuntResource {
             return Response.status(Response.Status.NOT_FOUND).entity("Bonus Hunt not found").build();
         }
 
+        // 🔥 Usa um Set para garantir que a slot não é duplicada
         if (hunt.slots == null) {
             hunt.slots = new ArrayList<>();
         }
 
-        // 🔹 Garantir que o nome está sendo persistido
-        if (slotEntry.name == null || slotEntry.name.isEmpty()) {
-            Slot slotInfo = Slot.findById(slotEntry.slotId);
-            if (slotInfo != null) {
-                slotEntry.name = slotInfo.name; // Obtém o nome correto da slot
-            }
+        // 🔥 Verifica se a slot já existe na Bonus Hunt para evitar operações desnecessárias
+        if (hunt.slots.stream().anyMatch(s -> s.slotId.equals(slotEntry.slotId))) {
+            return Response.ok(hunt).build(); // Já existe, retorna diretamente
         }
 
         hunt.slots.add(slotEntry);
-        hunt.update();
+        hunt.persistOrUpdate(); // 🔥 Atualiza tudo de uma vez
 
         return Response.ok(hunt).build();
     }
+
 
 
     @PUT
@@ -121,8 +120,6 @@ public class BonusHuntResource {
     }
 
 
-
-
     @DELETE
     @Path("/{id}/slots/{slotEntryId}")
     public Response removeSlotFromBonusHunt(@PathParam("id") String id, @PathParam("slotEntryId") String slotEntryId) {
@@ -131,15 +128,19 @@ public class BonusHuntResource {
             return Response.status(Response.Status.NOT_FOUND).entity("Bonus Hunt not found").build();
         }
 
-        // Encontrar e remover a slot correta dentro da lista de slots
+        // 🚀 Em vez de carregar todas as slots, apenas removemos a necessária
         boolean removed = hunt.slots.removeIf(slot -> slot.slotId.toString().equals(slotEntryId));
+
         if (!removed) {
             return Response.status(Response.Status.NOT_FOUND).entity("Slot entry not found in this Bonus Hunt").build();
         }
 
+        // 🔥 Atualiza o banco apenas se houve remoção
         hunt.persistOrUpdate();
+
         return Response.noContent().build();
     }
+
     @PUT
     @Path("/{id}/calculate-breakeven-inicial")
     @Produces(MediaType.APPLICATION_JSON)

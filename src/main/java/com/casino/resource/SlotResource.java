@@ -1,8 +1,8 @@
 package com.casino.resource;
-
 import com.casino.model.BonusHunt;
 import com.casino.model.Slot;
 import com.casino.model.SlotEntry;
+import io.quarkus.mongodb.panache.PanacheMongoEntityBase;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -16,13 +16,49 @@ import java.util.List;
 public class SlotResource {
 
     @POST
-    @Path("/slots")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response createSlot(Slot slot) {
-        slot.persist();
-        return Response.status(Response.Status.CREATED).entity(slot).build();
+        try {
+            System.out.println("📥 Dados recebidos no backend: " + slot);
+
+            if (slot.name == null || slot.provider == null || slot.rtp <= 0 || slot.maxWin <= 0) {
+                return Response.status(Response.Status.BAD_REQUEST).entity("Campos obrigatórios faltando").build();
+            }
+
+            if (slot.imageBase64 == null || slot.imageBase64.isEmpty()) {
+                return Response.status(Response.Status.BAD_REQUEST).entity("Imagem obrigatória").build();
+            }
+
+            slot.persist(); // Salva no MongoDB
+
+            System.out.println("✅ Slot salva no MongoDB: " + slot.id);
+            return Response.ok(slot).build();
+
+        } catch (Exception e) {
+            e.printStackTrace(); // Exibe erro no console do backend
+            return Response.serverError().entity("Erro ao salvar a slot").build();
+        }
     }
+
+    @GET
+    @Path("/providers")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getProviders() {
+        List<String> providers = Slot.<Slot>listAll() // 🔥 Casting explícito para Slot
+                .stream()
+                .map(slot -> slot.provider) // 🔥 Agora pode acessar diretamente
+                .filter(provider -> provider != null && !provider.isBlank()) // 🔥 Usa `isBlank()` para evitar problemas com espaços
+                .distinct()
+                .sorted()
+                .toList();
+
+        return Response.ok(providers).build();
+    }
+
+
+
+
 
     @GET
     @Path("/slots")
