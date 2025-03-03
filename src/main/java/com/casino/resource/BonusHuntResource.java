@@ -118,6 +118,22 @@ public class BonusHuntResource {
         return Response.ok(existingEntry).build();
     }
 
+    @DELETE
+    @Path("/{id}")
+    @Transactional
+    public Response deleteBonusHunt(@PathParam("id") String id) {
+        BonusHunt hunt = BonusHunt.findById(new ObjectId(id));
+        if (hunt == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity("Bonus Hunt não encontrada")
+                    .build();
+        }
+
+        hunt.delete(); // 🔥 Remove do MongoDB
+        return Response.noContent().build(); // Retorna 204 No Content
+    }
+
+
 
     @DELETE
     @Path("/{id}/slots/{slotEntryId}")
