@@ -164,99 +164,42 @@ public class BonusHuntResource {
 
     @PUT
     @Path("/{id}/calculate-breakeven-atual")
+    @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @Transactional
-    public Response calcularBreakEvenAtual(@PathParam("id") String id) {
+    public Response calcularBreakEvenAtual(@PathParam("id") String id, List<SlotEntry> slotsAtualizados) {
         BonusHunt bonusHunt = BonusHunt.findById(new ObjectId(id));
 
-        if (bonusHunt == null) {
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity(Json.createObjectBuilder().add("error", "Bonus Hunt não encontrada").build())
-                    .build();
+        if (bonusHunt == null || bonusHunt.slots.isEmpty()) {
+            return Response.status(Response.Status.NOT_FOUND).entity("Bonus Hunt não encontrada ou sem slots.").build();
         }
 
-        if (bonusHunt.slots == null || bonusHunt.slots.isEmpty()) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(Json.createObjectBuilder().add("error", "Nenhuma slot registrada para calcular o Break Even Atual").build())
-                    .build();
+        // Atualiza os valores das WIN das slots
+        for (SlotEntry updatedSlot : slotsAtualizados) {
+            bonusHunt.slots.stream()
+                    .filter(slot -> slot.slotId.equals(updatedSlot.slotId))
+                    .forEach(slot -> slot.win = updatedSlot.win);
         }
 
-        // 🔍 **Calcular total ganho**
-        double totalGanho = bonusHunt.slots.stream()
+        // Soma todas as wins já registradas
+        double totalWinsRegistradas = bonusHunt.slots.stream()
                 .mapToDouble(slot -> slot.win)
                 .sum();
 
-        // 🔍 **Calcular total apostado**
-        double totalBetsRestantes = bonusHunt.slots.stream()
-                .mapToDouble(slot -> slot.bet)
-                .sum();
+        // Conta quantos slots ainda não foram jogados
+        long slotsRestantes = bonusHunt.slots.stream()
+                .filter(slot -> slot.win == 0)
+                .count();
 
-        if (totalBetsRestantes == 0) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(Json.createObjectBuilder().add("error", "Total de apostas restantes é zero, impossível calcular BE").build())
-                    .build();
+        // Evita divisão por zero
+        if (slotsRestantes > 0) {
+            bonusHunt.breakEvenAtual = (bonusHunt.startAmount - totalWinsRegistradas) / slotsRestantes;
+        } else {
+            bonusHunt.breakEvenAtual = 0; // Todos os slots rodaram, BE não precisa ser calculado
         }
 
-        // 🔄 **Calcular Break Even Atual corretamente**
-        double breakEvenAtual = (bonusHunt.startAmount - totalGanho) / totalBetsRestantes;
-
-        if (Double.isNaN(breakEvenAtual) || Double.isInfinite(breakEvenAtual)) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(Json.createObjectBuilder().add("error", "Erro: BE Atual retornou um valor inválido").build())
-                    .build();
-        }
-
-        bonusHunt.breakEvenAtual = breakEvenAtual;
         bonusHunt.persistOrUpdate();
 
-        // ✅ **Retornar JSON correto**
-        return Response.ok(Json.createObjectBuilder()
-                        .add("breakEvenAtual", bonusHunt.breakEvenAtual) // 🔥 Converte BigDecimal para double
-                        .build())
-                .build();
-
-
-
-
+        return Response.ok(Map.of("breakEvenAtual", bonusHunt.breakEvenAtual)).build();
     }
-
-    @PUT
-    @Path("/{huntId}/slots/{slotId}/update-win")
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
-    @Transactional
-    public Response updateSlotWin(@PathParam("huntId") String huntId,
-                                  @PathParam("slotId") String slotId,
-                                  BonusHuntSlotEntry updatedEntry) {
-        BonusHunt bonusHunt = BonusHunt.findById(new ObjectId(huntId));
-        if (bonusHunt == null) {
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity(Json.createObjectBuilder().add("error", "Bonus Hunt não encontrada").build())
-                    .build();
-        }
-
-        Optional<SlotEntry> slotEntryOptional = bonusHunt.slots.stream()
-                .filter(entry -> entry.slotId.toString().equals(slotId))
-                .findFirst();
-
-        if (slotEntryOptional.isEmpty()) {
-            return Response.status(Response.Status.NOT_FOUND)
-                    .entity(Json.createObjectBuilder().add("error", "Slot não encontrada").build())
-                    .build();
-        }
-
-        // ✅ Atualiza a `win` corretamente
-        SlotEntry slotEntry = slotEntryOptional.get();
-        slotEntry.win = updatedEntry.win;
-
-        // 🔄 Salva a atualização no MongoDB
-        bonusHunt.persistOrUpdate();
-
-        return Response.ok(Json.createObjectBuilder()
-                .add("message", "Win atualizada com sucesso")
-                .add("win", slotEntry.win)
-                .build()).build();
-    }
-
 
 }
