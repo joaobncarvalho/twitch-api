@@ -8,6 +8,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.bson.types.ObjectId;
 
+import java.io.IOException;
 import java.util.List;
 
 @Path("/slots")
@@ -26,11 +27,11 @@ public class SlotResource {
                 return Response.status(Response.Status.BAD_REQUEST).entity("Campos obrigatórios faltando").build();
             }
 
-            if (slot.imageBase64 == null || slot.imageBase64.isEmpty()) {
+            if (slot.imageUrl == null || slot.imageUrl.isEmpty()) { // 🟢 Usamos imageUrl em vez de imageBase64
                 return Response.status(Response.Status.BAD_REQUEST).entity("Imagem obrigatória").build();
             }
 
-            slot.persist(); // Salva no MongoDB
+            slot.persist(); // Salva no MongoDB com a URL da imagem
 
             System.out.println("✅ Slot salva no MongoDB: " + slot.id);
             return Response.ok(slot).build();
@@ -40,6 +41,8 @@ public class SlotResource {
             return Response.serverError().entity("Erro ao salvar a slot").build();
         }
     }
+
+
 
     @GET
     @Path("/providers")

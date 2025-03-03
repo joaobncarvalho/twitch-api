@@ -29,7 +29,7 @@ public class SlotEntry {
     @BsonProperty("superMode")
     public boolean superMode;
 
-    @BsonProperty("imageBase64")
-    public String imageBase64;
+    @BsonProperty("imageUrl")
+    public String imageUrl;
 }
 

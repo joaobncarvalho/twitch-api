@@ -25,6 +25,9 @@ public class BonusHunt extends PanacheMongoEntity {
     @BsonProperty("slots")
     public List<SlotEntry> slots = new ArrayList<>();  // 🔹 Evita `null`
 
+
+
+
     // 🔹 Construtor Padrão Obrigatório para Quarkus
     public BonusHunt() {
     }

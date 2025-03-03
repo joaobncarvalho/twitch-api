@@ -20,8 +20,8 @@ public class Slot extends PanacheMongoEntity {
     @BsonProperty("maxWin")
     public double maxWin;
 
-    @BsonProperty("imageBase64")
-    public String imageBase64;
+    @BsonProperty("imageUrl")
+    public String imageUrl;
 
     @Override
     public String toString() {
@@ -30,7 +30,7 @@ public class Slot extends PanacheMongoEntity {
                 ", provider='" + provider + '\'' +
                 ", rtp=" + rtp +
                 ", maxWin=" + maxWin +
-                ", imageBase64='" + (imageBase64 != null ? "EXISTS" : "NULL") + '\'' +
+                ", imageBase64='" + (imageUrl != null ? "EXISTS" : "NULL") + '\'' +
                 '}';
     }
 }
