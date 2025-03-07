@@ -13,6 +13,7 @@ public class SlotEntry {
     public ObjectId bonusHuntId;
 
     @BsonProperty("slot_id")
+    @JsonProperty("slot_id")
     public ObjectId slotId;
 
     @BsonProperty("name")  // 🔹 Adiciona o nome no modelo
