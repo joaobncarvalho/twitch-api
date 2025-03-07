@@ -1,11 +1,21 @@
-# Usa uma imagem base do OpenJDK para rodar aplicações Java
-FROM eclipse-temurin:21-jdk
+# Usa a imagem do Maven e Java 21 para compilar a aplicação
+FROM eclipse-temurin:21-jdk AS build
 
-# Define o diretório de trabalho
 WORKDIR /app
 
-# Copia o arquivo JAR gerado pelo Maven/Gradle
-COPY target/quarkus-app /app/
+# Copia os arquivos do projeto
+COPY . .
 
-# Comando para executar a aplicação
+# Compila a aplicação com Maven
+RUN ./mvnw package -DskipTests
+
+# Usa uma nova imagem apenas para rodar o app
+FROM eclipse-temurin:21-jdk AS runner
+
+WORKDIR /app
+
+# Copia o build da fase anterior
+COPY --from=build /app/target/quarkus-app/ /app/
+
+# Define o comando de inicialização
 CMD ["java", "-jar", "/app/quarkus-run.jar"]
