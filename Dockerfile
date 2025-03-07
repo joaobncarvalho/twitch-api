@@ -1,5 +1,5 @@
-# Usa a imagem do Maven e Java 21 para compilar a aplicação
-FROM eclipse-temurin:21-jdk AS build
+# Usa uma imagem com Maven e Java 21 já instalados
+FROM maven:3.9.6-eclipse-temurin-21 AS build
 
 WORKDIR /app
 
