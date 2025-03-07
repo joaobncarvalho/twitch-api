@@ -7,7 +7,7 @@ WORKDIR /app
 COPY . .
 
 # Compila a aplicação com Maven
-RUN ./mvnw package -DskipTests
+RUN mvn package -DskipTests
 
 # Usa uma nova imagem apenas para rodar o app
 FROM eclipse-temurin:21-jdk AS runner
