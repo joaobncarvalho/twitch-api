@@ -1,16 +1,19 @@
-# Etapa 1: Compilar o projeto com Maven
+# Etapa 1: Construção com Maven
 FROM maven:3.9.6-eclipse-temurin-21 AS build
 
 WORKDIR /app
 
-# Copia todos os arquivos do projeto para o container
-COPY . .
+# Copia o arquivo pom.xml primeiro para otimizar cache
+COPY pom.xml ./
 
-# Verifica se o POM.XML realmente está no container
+# Verifica se o POM.XML realmente foi copiado
 RUN ls -l pom.xml || (echo "❌ ERRO: pom.xml NÃO ENCONTRADO!" && exit 1)
 
-# Baixa as dependências antes de compilar (melhora cache)
+# Baixa as dependências do Maven antes de copiar o código-fonte
 RUN mvn dependency:go-offline
+
+# Copia o restante do código para o container
+COPY src ./src
 
 # Compila o projeto
 RUN mvn package -DskipTests
