@@ -1,5 +1,6 @@
 package com.casino.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import org.bson.codecs.pojo.annotations.BsonId;
 import org.bson.codecs.pojo.annotations.BsonProperty;
@@ -12,6 +13,7 @@ public class SlotEntry {
     public ObjectId bonusHuntId;
 
     @BsonProperty("slot_id")
+    @JsonProperty("slot_id")
     public ObjectId slotId;
 
     @BsonProperty("name")  // 🔹 Adiciona o nome no modelo
