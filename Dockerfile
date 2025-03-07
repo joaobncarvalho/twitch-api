@@ -1,27 +1,27 @@
-# Usa uma imagem com Maven e Java 21 já instalados para compilar
+# Etapa 1: Compilar o projeto com Maven
 FROM maven:3.9.6-eclipse-temurin-21 AS build
 
 WORKDIR /app
 
-# Copia apenas o pom.xml para baixar dependências primeiro (otimiza cache)
-COPY pom.xml .
-
-# Baixa as dependências antes de copiar o código-fonte (melhora cache do build)
-RUN mvn dependency:go-offline
-
-# Agora copia o restante do código
+# Copia todos os arquivos do projeto para o container
 COPY . .
 
-# Compila a aplicação
+# Verifica se o POM.XML realmente está no container
+RUN ls -l pom.xml || (echo "❌ ERRO: pom.xml NÃO ENCONTRADO!" && exit 1)
+
+# Baixa as dependências antes de compilar (melhora cache)
+RUN mvn dependency:go-offline
+
+# Compila o projeto
 RUN mvn package -DskipTests
 
-# Usa uma nova imagem para rodar o app sem o Maven
+# Etapa 2: Criar a imagem final para rodar a aplicação
 FROM eclipse-temurin:21-jdk AS runner
 
 WORKDIR /app
 
-# Copia o build da fase anterior
+# Copia o build gerado na etapa anterior
 COPY --from=build /app/target/quarkus-app/ /app/
 
-# Define o comando de inicialização
+# Comando para rodar a aplicação
 CMD ["java", "-jar", "/app/quarkus-run.jar"]
