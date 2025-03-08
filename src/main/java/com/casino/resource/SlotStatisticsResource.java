@@ -26,7 +26,10 @@ public class SlotStatisticsResource {
         double totalBets = 0;
         int totalBonuses = 0;
         double bestMultiplier = 0;
+        double bestWin = 0;
+        double lastWin = 0;
 
+        // 🔄 Buscar estatísticas nas Bonus Hunts
         for (BonusHunt hunt : bonusHunts) {
             for (SlotEntry slot : hunt.slots) {
                 if (slot.name.equalsIgnoreCase(slotName)) {
@@ -39,10 +42,15 @@ public class SlotStatisticsResource {
                     if (multiplier > bestMultiplier) {
                         bestMultiplier = multiplier;
                     }
+                    if (slot.win > bestWin) {
+                        bestWin = slot.win; // 🔥 Guarda o maior pagamento
+                    }
+                    lastWin = slot.win; // 🔄 Atualiza com a última win encontrada
                 }
             }
         }
 
+        // 🔵 Buscar estatísticas do Single Player
         for (SinglePlayerEntry game : singlePlayerGames) {
             double multiplier = (game.win > 0 && game.bet > 0) ? (game.win / game.bet) : 0;
 
@@ -53,28 +61,37 @@ public class SlotStatisticsResource {
             if (multiplier > bestMultiplier) {
                 bestMultiplier = multiplier;
             }
+            if (game.win > bestWin) {
+                bestWin = game.win; // 🔥 Guarda o maior pagamento
+            }
+            lastWin = game.win; // 🔄 Atualiza com a última win encontrada
         }
 
+        // 📊 Cálculo da Média do Multiplicador
         double averageMultiplier = (totalBets > 0) ? (totalMultipliers / totalBets) : 0;
 
-        return Response.ok(new SlotStats(slotName, averageMultiplier, bestMultiplier, totalBonuses)).build();
+        return Response.ok(new SlotStats(slotName, averageMultiplier, bestMultiplier, totalBonuses, bestWin, lastWin)).build();
     }
 
-
-    // Classe auxiliar para serializar JSON
+    // ✅ Classe que retorna os dados atualizados
     public static class SlotStats {
         public String slotName;
         public double averageMultiplier;
         public double bestMultiplier;
         public int totalBonuses;
+        public double bestWin;
+        public double lastWin;
 
-        public SlotStats(String slotName, double averageMultiplier, double bestMultiplier, int totalBonuses) {
+        public SlotStats(String slotName, double averageMultiplier, double bestMultiplier, int totalBonuses, double bestWin, double lastWin) {
             this.slotName = slotName;
             this.averageMultiplier = averageMultiplier;
             this.bestMultiplier = bestMultiplier;
             this.totalBonuses = totalBonuses;
+            this.bestWin = bestWin;
+            this.lastWin = lastWin;
         }
     }
+
 
 
 
