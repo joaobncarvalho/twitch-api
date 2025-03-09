@@ -8,4 +8,5 @@ public class SinglePlayerEntry extends PanacheMongoEntity {
     public String slotName;
     public double bet;
     public double win;
+    public String imageUrl;
 }

@@ -27,6 +27,12 @@ public class SinglePlayerResource {
         return Response.status(Response.Status.CREATED).entity(entry).build();
     }
 
+    private String getSlotImageUrl(String slotName) {
+        // 🔥 Aqui você pode usar um banco de dados ou um mapa com as URLs das imagens das slots
+        return "https://twitch-api-production-5cc5.up.railway.app/slots/" + slotName.replace(" ", "_").toLowerCase() + ".png";
+    }
+
+
     @GET
     public List<SinglePlayerEntry> listAll() {
         return SinglePlayerEntry.listAll();
