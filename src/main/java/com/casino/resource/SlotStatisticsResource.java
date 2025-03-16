@@ -94,6 +94,79 @@ public class SlotStatisticsResource {
 
 
 
+    @GET
+    @Path("/{slotName}/splatest-win")
+    public Response getLatestSinglePlayerWin(@PathParam("slotName") String slotName) {
+        SinglePlayerEntry latestWin = SinglePlayerEntry.find("slotName = ?1 ORDER BY _id DESC", slotName).firstResult();
+
+        if (latestWin == null) {
+            return Response.status(Response.Status.NOT_FOUND).entity("Nenhuma win encontrada para essa slot").build();
+        }
+
+        return Response.ok(latestWin).build();
+    }
+
+    @GET
+    @Path("/{slotName}/bhlatest-win")
+    public Response getLatestBonusHuntWin(@PathParam("slotName") String slotName) {
+        SlotEntry latestWin = null;
+
+        List<BonusHunt> bonusHunts = BonusHunt.listAll(); // 🔄 Busca todas as Bonus Hunts
+        for (BonusHunt hunt : bonusHunts) {
+            for (SlotEntry slot : hunt.slots) {
+                if (slot.name.equalsIgnoreCase(slotName)) {
+                    if (latestWin == null || new ObjectId(slot.slotId.toString()).compareTo(new ObjectId(latestWin.slotId.toString())) > 0) {
+                        latestWin = slot; // 🔥 Pega o mais recente
+                    }
+                }
+            }
+        }
+
+        if (latestWin == null) {
+            return Response.status(Response.Status.NOT_FOUND).entity("Nenhuma win encontrada na Bonus Hunt para essa slot").build();
+        }
+
+        return Response.ok(latestWin).build();
+    }
+
+
+    @GET
+    @Path("/{slotName}/latest-win")
+    public Response getLatestWin(@PathParam("slotName") String slotName) {
+        Response singlePlayerResponse = getLatestSinglePlayerWin(slotName);
+        Response bonusHuntResponse = getLatestBonusHuntWin(slotName);
+
+        SinglePlayerEntry latestSinglePlayerWin = null;
+        SlotEntry latestBonusHuntWin = null;
+
+        if (singlePlayerResponse.getStatus() == Response.Status.OK.getStatusCode()) {
+            latestSinglePlayerWin = (SinglePlayerEntry) singlePlayerResponse.getEntity();
+        }
+
+        if (bonusHuntResponse.getStatus() == Response.Status.OK.getStatusCode()) {
+            latestBonusHuntWin = (SlotEntry) bonusHuntResponse.getEntity();
+        }
+
+        // 📌 Comparar qual win é mais recente
+        Object latestWin;
+        if (latestSinglePlayerWin != null && latestBonusHuntWin != null) {
+            latestWin = new ObjectId(latestSinglePlayerWin.id).compareTo(new ObjectId(latestBonusHuntWin.slotId.toString())) > 0
+                    ? latestSinglePlayerWin
+                    : latestBonusHuntWin;
+        } else {
+            latestWin = (latestSinglePlayerWin != null) ? latestSinglePlayerWin : latestBonusHuntWin;
+        }
+
+        if (latestWin == null) {
+            return Response.status(Response.Status.NOT_FOUND).entity("Nenhuma win encontrada").build();
+        }
+
+        return Response.ok(latestWin).build();
+    }
+
+
+
+
 
 
 }

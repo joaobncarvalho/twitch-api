@@ -218,4 +218,9 @@ public class BonusHuntResource {
         return Response.ok(Map.of("breakEvenAtual", bonusHunt.breakEvenAtual)).build();
     }
 
+
+
+
+
+
 }
