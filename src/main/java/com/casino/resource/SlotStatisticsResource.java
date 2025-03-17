@@ -136,27 +136,28 @@ public class SlotStatisticsResource {
     @GET
     @Path("/{slotName}/latest-win")
     public Response getLatestWin(@PathParam("slotName") String slotName) {
+        // Obter última Single Player win
         SinglePlayerEntry latestSinglePlayerWin = SinglePlayerEntry
                 .find("slotName = ?1 ORDER BY _id DESC", slotName)
                 .firstResult();
 
+        // Obter última Bonus Hunt win baseada no _id da BonusHunt (mais recente)
         SlotEntry latestBonusHuntWin = null;
-        List<BonusHunt> bonusHunts = BonusHunt.listAll();
-        for (BonusHunt hunt : bonusHunts) {
-            for (SlotEntry slot : hunt.slots) {
+        BonusHunt latestHunt = BonusHunt.find("slots.name = ?1 ORDER BY _id DESC", slotName).firstResult();
+
+        if (latestHunt != null) {
+            for (SlotEntry slot : latestHunt.slots) {
                 if (slot.name.equalsIgnoreCase(slotName)) {
-                    if (latestBonusHuntWin == null ||
-                            new ObjectId(slot.slotId.toString()).compareTo(new ObjectId(latestBonusHuntWin.slotId.toString())) > 0) {
-                        latestBonusHuntWin = slot;
-                    }
+                    latestBonusHuntWin = slot;
+                    break; // Já encontraste a última, não precisas continuar
                 }
             }
         }
 
-        // 📌 Comparar qual win é mais recente
+        // Comparação final entre Single Player e Bonus Hunt
         Object latestWin;
         if (latestSinglePlayerWin != null && latestBonusHuntWin != null) {
-            latestWin = new ObjectId(latestSinglePlayerWin.id).compareTo(new ObjectId(latestBonusHuntWin.slotId.toString())) > 0
+            latestWin = new ObjectId(latestSinglePlayerWin.id).compareTo(new ObjectId(latestHunt.id.toString())) > 0
                     ? latestSinglePlayerWin
                     : latestBonusHuntWin;
         } else {
@@ -169,6 +170,7 @@ public class SlotStatisticsResource {
 
         return Response.ok(latestWin).build();
     }
+
 
 
 }
