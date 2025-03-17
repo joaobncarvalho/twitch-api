@@ -1,6 +1,7 @@
 package com.casino.resource;
 
 import com.casino.model.BonusHunt;
+import com.casino.model.BonusHuntSlotEntry;
 import com.casino.model.SinglePlayerEntry;
 import com.casino.model.SlotEntry;
 import jakarta.ws.rs.*;
@@ -8,6 +9,8 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.bson.types.ObjectId;
 
+import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
 import java.util.OptionalDouble;
 
@@ -137,28 +140,29 @@ public class SlotStatisticsResource {
     @Path("/{slotName}/latest-win")
     public Response getLatestWin(@PathParam("slotName") String slotName) {
         SinglePlayerEntry latestSinglePlayerWin = SinglePlayerEntry
-                .find("slotName = ?1 ORDER BY createdAt DESC", slotName)
+                .find("slotName = ?1 and createdAt != null ORDER BY createdAt DESC", slotName)
+                .firstResult();
+
+        BonusHunt latestHunt = BonusHunt
+                .find("slots.name = ?1 ORDER BY createdAt DESC", slotName)
                 .firstResult();
 
         SlotEntry latestBonusHuntWin = null;
-        BonusHunt latestHunt = BonusHunt.find("slots.name = ?1 ORDER BY createdAt DESC", slotName).firstResult();
-
         if (latestHunt != null) {
-            for (SlotEntry slot : latestHunt.slots) {
-                if (slot.name.equalsIgnoreCase(slotName)) {
-                    latestBonusHuntWin = slot;
-                    break;
-                }
-            }
+            latestBonusHuntWin = latestHunt.slots.stream()
+                    .filter(slot -> slot.name.equalsIgnoreCase(slotName))
+                    .max(Comparator.comparing(slot -> slot.createdAt))
+                    .orElse(null);
         }
 
-        Object latestWin;
+        Object latestWin = null;
+
         if (latestSinglePlayerWin != null && latestBonusHuntWin != null) {
-            latestWin = latestSinglePlayerWin.createdAt.compareTo(latestHunt.createdAt) > 0
+            latestWin = latestSinglePlayerWin.createdAt.isAfter(latestBonusHuntWin.createdAt)
                     ? latestSinglePlayerWin
                     : latestBonusHuntWin;
         } else {
-            latestWin = (latestSinglePlayerWin != null) ? latestSinglePlayerWin : latestBonusHuntWin;
+            latestWin = latestSinglePlayerWin != null ? latestSinglePlayerWin : latestBonusHuntWin;
         }
 
         if (latestWin == null) {
@@ -167,6 +171,8 @@ public class SlotStatisticsResource {
 
         return Response.ok(latestWin).build();
     }
+
+
 
 
 
