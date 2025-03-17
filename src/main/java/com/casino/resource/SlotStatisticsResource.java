@@ -136,18 +136,21 @@ public class SlotStatisticsResource {
     @GET
     @Path("/{slotName}/latest-win")
     public Response getLatestWin(@PathParam("slotName") String slotName) {
-        Response singlePlayerResponse = getLatestSinglePlayerWin(slotName);
-        Response bonusHuntResponse = getLatestBonusHuntWin(slotName);
+        SinglePlayerEntry latestSinglePlayerWin = SinglePlayerEntry
+                .find("slotName = ?1 ORDER BY _id DESC", slotName)
+                .firstResult();
 
-        SinglePlayerEntry latestSinglePlayerWin = null;
         SlotEntry latestBonusHuntWin = null;
-
-        if (singlePlayerResponse.getStatus() == Response.Status.OK.getStatusCode()) {
-            latestSinglePlayerWin = singlePlayerResponse.readEntity(SinglePlayerEntry.class);
-        }
-
-        if (bonusHuntResponse.getStatus() == Response.Status.OK.getStatusCode()) {
-            latestBonusHuntWin = bonusHuntResponse.readEntity(SlotEntry.class);
+        List<BonusHunt> bonusHunts = BonusHunt.listAll();
+        for (BonusHunt hunt : bonusHunts) {
+            for (SlotEntry slot : hunt.slots) {
+                if (slot.name.equalsIgnoreCase(slotName)) {
+                    if (latestBonusHuntWin == null ||
+                            new ObjectId(slot.slotId.toString()).compareTo(new ObjectId(latestBonusHuntWin.slotId.toString())) > 0) {
+                        latestBonusHuntWin = slot;
+                    }
+                }
+            }
         }
 
         // 📌 Comparar qual win é mais recente
@@ -166,5 +169,6 @@ public class SlotStatisticsResource {
 
         return Response.ok(latestWin).build();
     }
+
 
 }
