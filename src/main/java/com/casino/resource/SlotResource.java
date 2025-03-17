@@ -59,10 +59,6 @@ public class SlotResource {
         return Response.ok(providers).build();
     }
 
-
-
-
-
     @GET
     @Path("/slots")
     @Produces(MediaType.APPLICATION_JSON)
