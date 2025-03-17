@@ -4,6 +4,7 @@ import com.casino.model.BonusHunt;
 import com.casino.model.BonusHuntSlotEntry;
 import com.casino.model.Slot;
 import com.casino.model.SlotEntry;
+import io.quarkus.panache.common.Sort;
 import io.vertx.core.json.JsonObject;
 import jakarta.json.Json;
 import jakarta.transaction.Transactional;
@@ -158,11 +159,18 @@ public class BonusHuntResource {
     }
 
     @GET
-    @Path("/bonus-hunt/active")
-    public BonusHunt getActiveBonusHunt() {
-        // 🔥 Aqui tens de implementar uma lógica simples para buscar a Bonus Hunt ativa
-        return BonusHunt.find("ativo", true).firstResult();
+    @Path("/latest")
+    public Response getLatestBonusHunt() {
+        BonusHunt latestHunt = BonusHunt.findAll(Sort.descending("_id")).firstResult();
+
+        if (latestHunt == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity("Nenhuma Bonus Hunt encontrada").build();
+        }
+
+        return Response.ok(latestHunt).build();
     }
+
 
 
     @PUT
