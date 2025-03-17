@@ -1,6 +1,7 @@
 package com.casino.resource;
 
 import com.casino.model.BonusHunt;
+import io.quarkus.panache.common.Sort;
 import com.casino.model.BonusHuntSlotEntry;
 import com.casino.model.SinglePlayerEntry;
 import com.casino.model.SlotEntry;
@@ -10,6 +11,7 @@ import jakarta.ws.rs.core.Response;
 import org.bson.types.ObjectId;
 
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
 import java.util.OptionalDouble;
 
@@ -134,24 +136,24 @@ public class SlotStatisticsResource {
     }
 
 
-
     @GET
     @Path("/{slotName}/latest-win")
     public Response getLatestWin(@PathParam("slotName") String slotName) {
         SinglePlayerEntry latestSinglePlayerWin = SinglePlayerEntry
-                .find("slotName = ?1 ORDER BY createdAt DESC", slotName)
+                .find("slotName = ?1", Sort.descending("createdAt"), slotName)
                 .firstResult();
 
         BonusHuntSlotEntry latestBonusHuntWin = BonusHuntSlotEntry
-                .find("slot_id = ?1 ORDER BY createdAt DESC", slotName)
+                .find("slot_id = ?1", Sort.descending("createdAt"), slotName)
                 .firstResult();
 
         Object latestWin;
-        if (latestSinglePlayerWin != null && latestSinglePlayerWin.createdAt != null &&
-                latestSinglePlayerWin.createdAt.isAfter(latestBonusHuntWin != null ? latestBonusHuntWin.createdAt : Instant.MIN)) {
-            latestWin = latestSinglePlayerWin;
+        if (latestSinglePlayerWin != null && latestBonusHuntWin != null) {
+            latestWin = latestSinglePlayerWin.createdAt.isAfter(latestBonusHuntWin.createdAt)
+                    ? latestSinglePlayerWin
+                    : latestBonusHuntWin;
         } else {
-            latestWin = latestBonusHuntWin;
+            latestWin = latestSinglePlayerWin != null ? latestSinglePlayerWin : latestBonusHuntWin;
         }
 
         if (latestWin == null) {
@@ -160,9 +162,5 @@ public class SlotStatisticsResource {
 
         return Response.ok(latestWin).build();
     }
-
-
-
-
 
 }
