@@ -187,41 +187,41 @@ public class BonusHuntResource {
         BonusHunt bonusHunt = BonusHunt.findById(new ObjectId(id));
 
         if (bonusHunt == null || bonusHunt.slots.isEmpty()) {
-            return Response.status(Response.Status.NOT_FOUND).entity("Bonus Hunt não encontrada ou sem slots.").build();
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity("Bonus Hunt não encontrada ou sem slots.")
+                    .build();
         }
 
-        // Atualiza os valores das WIN das slots
+        // 🔄 Atualizar wins dos slots recebidos
         for (SlotEntry updatedSlot : slotsAtualizados) {
             bonusHunt.slots.stream()
                     .filter(slot -> slot.slotId.equals(updatedSlot.slotId))
-                    .forEach(slot -> slot.win = updatedSlot.win);
+                    .forEach(slot -> {
+                        slot.win = updatedSlot.win;
+                        slot.createdAt = updatedSlot.createdAt; // garante que atualiza o createdAt também
+                    });
         }
 
-        // Soma todas as wins já registradas
+        // 🔥 Corrige cálculo totalWins
         double totalWinsRegistradas = bonusHunt.slots.stream()
                 .mapToDouble(slot -> slot.win)
                 .sum();
 
-        // Conta quantos slots ainda não foram jogados
+        // 🔥 Slots restantes (slots sem win registrada)
         long slotsRestantes = bonusHunt.slots.stream()
                 .filter(slot -> slot.win == 0)
                 .count();
 
-        // Evita divisão por zero
-        if (slotsRestantes > 0) {
-            bonusHunt.breakEvenAtual = (bonusHunt.startAmount - totalWinsRegistradas) / slotsRestantes;
-        } else {
-            bonusHunt.breakEvenAtual = 0; // Todos os slots rodaram, BE não precisa ser calculado
-        }
+        double saldoRestanteARecuperar = bonusHunt.startAmount - totalWinsRegistradas;
+
+        bonusHunt.breakEvenAtual = slotsRestantes > 0
+                ? saldoRestanteARecuperar / slotsRestantes
+                : 0;
 
         bonusHunt.persistOrUpdate();
 
         return Response.ok(Map.of("breakEvenAtual", bonusHunt.breakEvenAtual)).build();
     }
-
-
-
-
 
 
 }
