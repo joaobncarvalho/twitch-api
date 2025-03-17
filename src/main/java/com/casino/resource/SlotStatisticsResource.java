@@ -97,7 +97,8 @@ public class SlotStatisticsResource {
     @GET
     @Path("/{slotName}/splatest-win")
     public Response getLatestSinglePlayerWin(@PathParam("slotName") String slotName) {
-        SinglePlayerEntry latestWin = SinglePlayerEntry.find("slotName = ?1 ORDER BY _id DESC", slotName).firstResult();
+        SinglePlayerEntry latestWin = SinglePlayerEntry.find("slotName = ?1", slotName)
+                .firstResult(); // Se o `_id` for um ObjectId, ele já retorna ordenado.
 
         if (latestWin == null) {
             return Response.status(Response.Status.NOT_FOUND).entity("Nenhuma win encontrada para essa slot").build();
@@ -105,6 +106,7 @@ public class SlotStatisticsResource {
 
         return Response.ok(latestWin).build();
     }
+
 
     @GET
     @Path("/{slotName}/bhlatest-win")
@@ -115,7 +117,7 @@ public class SlotStatisticsResource {
         for (BonusHunt hunt : bonusHunts) {
             for (SlotEntry slot : hunt.slots) {
                 if (slot.name.equalsIgnoreCase(slotName)) {
-                    if (latestWin == null || new ObjectId(slot.slotId.toString()).compareTo(new ObjectId(latestWin.slotId.toString())) > 0) {
+                    if (latestWin == null || slot.slotId.compareTo(latestWin.slotId) > 0) {
                         latestWin = slot; // 🔥 Pega o mais recente
                     }
                 }
@@ -140,17 +142,17 @@ public class SlotStatisticsResource {
         SlotEntry latestBonusHuntWin = null;
 
         if (singlePlayerResponse.getStatus() == Response.Status.OK.getStatusCode()) {
-            latestSinglePlayerWin = (SinglePlayerEntry) singlePlayerResponse.getEntity();
+            latestSinglePlayerWin = singlePlayerResponse.readEntity(SinglePlayerEntry.class);
         }
 
         if (bonusHuntResponse.getStatus() == Response.Status.OK.getStatusCode()) {
-            latestBonusHuntWin = (SlotEntry) bonusHuntResponse.getEntity();
+            latestBonusHuntWin = bonusHuntResponse.readEntity(SlotEntry.class);
         }
 
         // 📌 Comparar qual win é mais recente
         Object latestWin;
         if (latestSinglePlayerWin != null && latestBonusHuntWin != null) {
-            latestWin = new ObjectId(latestSinglePlayerWin.id).compareTo(new ObjectId(latestBonusHuntWin.slotId.toString())) > 0
+            latestWin = (latestSinglePlayerWin.id.compareTo(String.valueOf(latestBonusHuntWin.slotId)) > 0)
                     ? latestSinglePlayerWin
                     : latestBonusHuntWin;
         } else {
@@ -163,10 +165,4 @@ public class SlotStatisticsResource {
 
         return Response.ok(latestWin).build();
     }
-
-
-
-
-
-
 }
