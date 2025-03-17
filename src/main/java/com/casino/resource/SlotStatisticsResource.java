@@ -10,7 +10,6 @@ import jakarta.ws.rs.core.Response;
 import org.bson.types.ObjectId;
 
 import java.time.Instant;
-import java.util.Comparator;
 import java.util.List;
 import java.util.OptionalDouble;
 
@@ -140,29 +139,19 @@ public class SlotStatisticsResource {
     @Path("/{slotName}/latest-win")
     public Response getLatestWin(@PathParam("slotName") String slotName) {
         SinglePlayerEntry latestSinglePlayerWin = SinglePlayerEntry
-                .find("slotName = ?1 and createdAt != null ORDER BY createdAt DESC", slotName)
+                .find("slotName = ?1 ORDER BY createdAt DESC", slotName)
                 .firstResult();
 
-        BonusHunt latestHunt = BonusHunt
-                .find("slots.name = ?1 ORDER BY createdAt DESC", slotName)
+        BonusHuntSlotEntry latestBonusHuntWin = BonusHuntSlotEntry
+                .find("slot_id = ?1 ORDER BY createdAt DESC", slotName)
                 .firstResult();
 
-        SlotEntry latestBonusHuntWin = null;
-        if (latestHunt != null) {
-            latestBonusHuntWin = latestHunt.slots.stream()
-                    .filter(slot -> slot.name.equalsIgnoreCase(slotName))
-                    .max(Comparator.comparing(slot -> slot.createdAt))
-                    .orElse(null);
-        }
-
-        Object latestWin = null;
-
-        if (latestSinglePlayerWin != null && latestBonusHuntWin != null) {
-            latestWin = latestSinglePlayerWin.createdAt.isAfter(latestBonusHuntWin.createdAt)
-                    ? latestSinglePlayerWin
-                    : latestBonusHuntWin;
+        Object latestWin;
+        if (latestSinglePlayerWin != null && latestSinglePlayerWin.createdAt != null &&
+                latestSinglePlayerWin.createdAt.isAfter(latestBonusHuntWin != null ? latestBonusHuntWin.createdAt : Instant.MIN)) {
+            latestWin = latestSinglePlayerWin;
         } else {
-            latestWin = latestSinglePlayerWin != null ? latestSinglePlayerWin : latestBonusHuntWin;
+            latestWin = latestBonusHuntWin;
         }
 
         if (latestWin == null) {
@@ -171,7 +160,6 @@ public class SlotStatisticsResource {
 
         return Response.ok(latestWin).build();
     }
-
 
 
 
