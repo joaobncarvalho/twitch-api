@@ -165,7 +165,6 @@ public class SlotStatisticsResource {
             return Response.status(Response.Status.NOT_FOUND).entity("Nenhuma win encontrada").build();
         }
 
-
         return Response.ok(latestWin).build();
     }
 
