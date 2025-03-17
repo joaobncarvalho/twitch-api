@@ -97,8 +97,7 @@ public class SlotStatisticsResource {
     @GET
     @Path("/{slotName}/splatest-win")
     public Response getLatestSinglePlayerWin(@PathParam("slotName") String slotName) {
-        SinglePlayerEntry latestWin = SinglePlayerEntry.find("slotName = ?1", slotName)
-                .firstResult(); // Se o `_id` for um ObjectId, ele já retorna ordenado.
+        SinglePlayerEntry latestWin = SinglePlayerEntry.find("slotName = ?1 ORDER BY _id DESC", slotName).firstResult();
 
         if (latestWin == null) {
             return Response.status(Response.Status.NOT_FOUND).entity("Nenhuma win encontrada para essa slot").build();
@@ -106,6 +105,7 @@ public class SlotStatisticsResource {
 
         return Response.ok(latestWin).build();
     }
+
 
 
     @GET
@@ -117,7 +117,7 @@ public class SlotStatisticsResource {
         for (BonusHunt hunt : bonusHunts) {
             for (SlotEntry slot : hunt.slots) {
                 if (slot.name.equalsIgnoreCase(slotName)) {
-                    if (latestWin == null || slot.slotId.compareTo(latestWin.slotId) > 0) {
+                    if (latestWin == null || new ObjectId(slot.slotId.toString()).compareTo(new ObjectId(latestWin.slotId.toString())) > 0) {
                         latestWin = slot; // 🔥 Pega o mais recente
                     }
                 }
@@ -130,6 +130,7 @@ public class SlotStatisticsResource {
 
         return Response.ok(latestWin).build();
     }
+
 
 
     @GET
@@ -152,7 +153,7 @@ public class SlotStatisticsResource {
         // 📌 Comparar qual win é mais recente
         Object latestWin;
         if (latestSinglePlayerWin != null && latestBonusHuntWin != null) {
-            latestWin = (latestSinglePlayerWin.id.compareTo(String.valueOf(latestBonusHuntWin.slotId)) > 0)
+            latestWin = new ObjectId(latestSinglePlayerWin.id).compareTo(new ObjectId(latestBonusHuntWin.slotId.toString())) > 0
                     ? latestSinglePlayerWin
                     : latestBonusHuntWin;
         } else {
@@ -165,4 +166,5 @@ public class SlotStatisticsResource {
 
         return Response.ok(latestWin).build();
     }
+
 }
