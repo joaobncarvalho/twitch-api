@@ -112,6 +112,7 @@ public class BonusHuntResource {
         existingEntry.win = updatedEntry.win;
         existingEntry.extraScatters = updatedEntry.extraScatters;
         existingEntry.superMode = updatedEntry.superMode;
+        existingEntry.createdAt = updatedEntry.createdAt;
 
         // 🚀 Use `update()` no lugar de `persist()` para evitar duplicação
         hunt.update();
