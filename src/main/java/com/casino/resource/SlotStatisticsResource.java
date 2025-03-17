@@ -136,28 +136,25 @@ public class SlotStatisticsResource {
     @GET
     @Path("/{slotName}/latest-win")
     public Response getLatestWin(@PathParam("slotName") String slotName) {
-        // Obter última Single Player win
         SinglePlayerEntry latestSinglePlayerWin = SinglePlayerEntry
-                .find("slotName = ?1 ORDER BY _id DESC", slotName)
+                .find("slotName = ?1 ORDER BY createdAt DESC", slotName)
                 .firstResult();
 
-        // Obter última Bonus Hunt win baseada no _id da BonusHunt (mais recente)
         SlotEntry latestBonusHuntWin = null;
-        BonusHunt latestHunt = BonusHunt.find("slots.name = ?1 ORDER BY _id DESC", slotName).firstResult();
+        BonusHunt latestHunt = BonusHunt.find("slots.name = ?1 ORDER BY createdAt DESC", slotName).firstResult();
 
         if (latestHunt != null) {
             for (SlotEntry slot : latestHunt.slots) {
                 if (slot.name.equalsIgnoreCase(slotName)) {
                     latestBonusHuntWin = slot;
-                    break; // Já encontraste a última, não precisas continuar
+                    break;
                 }
             }
         }
 
-        // Comparação final entre Single Player e Bonus Hunt
         Object latestWin;
         if (latestSinglePlayerWin != null && latestBonusHuntWin != null) {
-            latestWin = new ObjectId(latestSinglePlayerWin.id).compareTo(new ObjectId(latestHunt.id.toString())) > 0
+            latestWin = latestSinglePlayerWin.createdAt.compareTo(latestHunt.createdAt) > 0
                     ? latestSinglePlayerWin
                     : latestBonusHuntWin;
         } else {
@@ -170,6 +167,7 @@ public class SlotStatisticsResource {
 
         return Response.ok(latestWin).build();
     }
+
 
 
 

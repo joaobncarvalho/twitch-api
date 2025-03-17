@@ -7,6 +7,7 @@ import org.bson.BsonType;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.codecs.pojo.annotations.BsonRepresentation;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,6 +29,9 @@ public class BonusHunt extends PanacheMongoEntity {
 
     @BsonProperty("slots")
     public List<SlotEntry> slots = new ArrayList<>();  // 🔹 Evita `null`
+
+    @BsonProperty("createdAt")
+    public Instant createdAt;
 
 
 
