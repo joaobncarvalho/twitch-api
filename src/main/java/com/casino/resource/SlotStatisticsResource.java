@@ -139,26 +139,32 @@ public class SlotStatisticsResource {
     @GET
     @Path("/{slotName}/latest-win")
     public Response getLatestWin(@PathParam("slotName") String slotName) {
-        SinglePlayerEntry latestSinglePlayerWin = SinglePlayerEntry
-                .find("slotName = ?1", Sort.descending("createdAt"), slotName)
+        SinglePlayerEntry latestSinglePlayerWin = SinglePlayerEntry.find("slotName = ?1", Sort.descending("createdAt"), slotName)
                 .firstResult();
 
-        BonusHuntSlotEntry latestBonusHuntWin = BonusHuntSlotEntry
-                .find("slot_id = ?1", Sort.descending("createdAt"), slotName)
-                .firstResult();
+        List<BonusHunt> bonusHunts = BonusHunt.listAll();
+
+        // Encontrar a última win da slot dentro das Bonus Hunts
+        SlotEntry latestBonusHuntWin = bonusHunts.stream()
+                .flatMap(hunt -> hunt.slots.stream())
+                .filter(slot -> slot.name.equalsIgnoreCase(slotName) && slot.createdAt != null)
+                .max(Comparator.comparing(slot -> slot.createdAt))
+                .orElse(null);
 
         Object latestWin;
+
         if (latestSinglePlayerWin != null && latestBonusHuntWin != null) {
             latestWin = latestSinglePlayerWin.createdAt.isAfter(latestBonusHuntWin.createdAt)
                     ? latestSinglePlayerWin
                     : latestBonusHuntWin;
+        } else if (latestSinglePlayerWin != null) {
+            latestWin = latestSinglePlayerWin;
+        } else if (latestBonusHuntWin != null) {
+            latestWin = latestBonusHuntWin;
         } else {
-            latestWin = latestSinglePlayerWin != null ? latestSinglePlayerWin : latestBonusHuntWin;
-        }
-
-        if (latestWin == null) {
             return Response.status(Response.Status.NOT_FOUND).entity("Nenhuma win encontrada").build();
         }
+
 
         return Response.ok(latestWin).build();
     }
