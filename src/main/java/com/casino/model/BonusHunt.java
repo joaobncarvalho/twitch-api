@@ -33,6 +33,9 @@ public class BonusHunt extends PanacheMongoEntity {
     @BsonProperty("createdAt")
     public Instant createdAt;
 
+    @BsonProperty("ativo")
+    public boolean ativo;
+
 
 
 

@@ -157,6 +157,14 @@ public class BonusHuntResource {
         return Response.noContent().build();
     }
 
+    @GET
+    @Path("/bonus-hunt/active")
+    public BonusHunt getActiveBonusHunt() {
+        // 🔥 Aqui tens de implementar uma lógica simples para buscar a Bonus Hunt ativa
+        return BonusHunt.find("ativo", true).firstResult();
+    }
+
+
     @PUT
     @Path("/{id}/calculate-breakeven-inicial")
     @Produces(MediaType.APPLICATION_JSON)
