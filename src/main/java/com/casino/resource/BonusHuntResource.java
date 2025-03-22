@@ -171,6 +171,28 @@ public class BonusHuntResource {
         return Response.ok(latestHunt).build();
     }
 
+    @GET
+    @Path("/latest/best-slot")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getBestSlotOfLatestBonusHunt() {
+        BonusHunt latestHunt = BonusHunt.findAll(Sort.descending("_id")).firstResult();
+
+        if (latestHunt == null || latestHunt.slots.isEmpty()) {
+            return Response.status(Response.Status.NO_CONTENT).build();
+        }
+
+        SlotEntry bestSlot = latestHunt.slots.stream()
+                .filter(slot -> slot.win > 0)
+                .max(Comparator.comparingDouble(slot -> slot.win))
+                .orElse(null);
+
+        if (bestSlot == null) {
+            return Response.status(Response.Status.NO_CONTENT).build();
+        }
+
+        return Response.ok(bestSlot).build();
+    }
+
 
 
     @PUT
