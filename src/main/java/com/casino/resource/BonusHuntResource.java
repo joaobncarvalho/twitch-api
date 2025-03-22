@@ -236,30 +236,42 @@ public class BonusHuntResource {
                     .filter(slot -> slot.slotId.equals(updatedSlot.slotId))
                     .forEach(slot -> {
                         slot.win = updatedSlot.win;
-                        slot.createdAt = updatedSlot.createdAt; // garante que atualiza o createdAt também
+                        slot.createdAt = updatedSlot.createdAt;
                     });
         }
 
-        // 🔥 Corrige cálculo totalWins
+        // 📌 Verifica se já há pelo menos uma win registada
+        boolean temWinRegistrada = bonusHunt.slots.stream().anyMatch(slot -> slot.win > 0);
+
+        if (!temWinRegistrada) {
+            bonusHunt.breakEvenAtual = 0;
+            bonusHunt.persistOrUpdate();
+            return Response.ok(Map.of("breakEvenAtual", "N/A")).build();
+        }
+
+        // 🔥 Soma total de wins já registadas
         double totalWinsRegistradas = bonusHunt.slots.stream()
                 .mapToDouble(slot -> slot.win)
                 .sum();
 
-        // 🔥 Slots restantes (slots sem win registrada)
-        long slotsRestantes = bonusHunt.slots.stream()
-                .filter(slot -> slot.win == 0)
-                .count();
-
+        // 🔥 Saldo restante a recuperar
         double saldoRestanteARecuperar = bonusHunt.startAmount - totalWinsRegistradas;
 
-        bonusHunt.breakEvenAtual = slotsRestantes > 0
-                ? saldoRestanteARecuperar / slotsRestantes
+        // 🔥 Soma das bets das slots restantes (slots com win=0)
+        double totalBetsRestantes = bonusHunt.slots.stream()
+                .filter(slot -> slot.win == 0)
+                .mapToDouble(slot -> slot.bet)
+                .sum();
+
+        bonusHunt.breakEvenAtual = totalBetsRestantes > 0
+                ? saldoRestanteARecuperar / totalBetsRestantes
                 : 0;
 
         bonusHunt.persistOrUpdate();
 
         return Response.ok(Map.of("breakEvenAtual", bonusHunt.breakEvenAtual)).build();
     }
+
 
 
 }
