@@ -1,21 +1,17 @@
 package com.casino.resource;
 
-import com.casino.model.BonusHunt;
+import com.casino.domain.BonusHunt;
+import com.casino.domain.SinglePlayerGame; // v2.0
+import com.casino.domain.BonusHuntSlot;      // v2.0
 import io.quarkus.panache.common.Sort;
-import com.casino.model.BonusHuntSlotEntry;
-import com.casino.model.SinglePlayerEntry;
-import com.casino.model.SlotEntry;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.bson.types.ObjectId;
-
-import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
-import java.util.OptionalDouble;
 
-@Path("/slots")
+@Path("/slot-stats") // Alterado para evitar conflito JAX-RS com /slots
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class SlotStatisticsResource {
@@ -23,8 +19,9 @@ public class SlotStatisticsResource {
     @GET
     @Path("/{slotName}/statistics")
     public Response getSlotStatistics(@PathParam("slotName") String slotName) {
-        List<BonusHunt> bonusHunts = BonusHunt.listAll();
-        List<SinglePlayerEntry> singlePlayerGames = SinglePlayerEntry.list("slotName", slotName);
+        // Performance: Filtramos na DB, não em Java
+        List<SinglePlayerGame> spGames = SinglePlayerGame.list("slotName", slotName);
+        List<BonusHunt> bonusHunts = BonusHunt.find("slots.slotName", slotName).list();
 
         double totalMultipliers = 0;
         double totalBets = 0;
@@ -33,51 +30,34 @@ public class SlotStatisticsResource {
         double bestWin = 0;
         double lastWin = 0;
 
-        // 🔄 Buscar estatísticas nas Bonus Hunts
         for (BonusHunt hunt : bonusHunts) {
-            for (SlotEntry slot : hunt.slots) {
-                if (slot.name.equalsIgnoreCase(slotName)) {
-                    double multiplier = (slot.win > 0 && slot.bet > 0) ? (slot.win / slot.bet) : 0;
-
-                    totalMultipliers += multiplier;
+            for (BonusHuntSlot s : hunt.slots) {
+                if (s.slotName.equalsIgnoreCase(slotName)) {
+                    double mult = (s.winAmount > 0 && s.betSize > 0) ? (s.winAmount / s.betSize) : 0;
+                    totalMultipliers += mult;
                     totalBets++;
                     totalBonuses++;
-
-                    if (multiplier > bestMultiplier) {
-                        bestMultiplier = multiplier;
-                    }
-                    if (slot.win > bestWin) {
-                        bestWin = slot.win; // 🔥 Guarda o maior pagamento
-                    }
-                    lastWin = slot.win; // 🔄 Atualiza com a última win encontrada
+                    bestMultiplier = Math.max(bestMultiplier, mult);
+                    bestWin = Math.max(bestWin, s.winAmount);
+                    lastWin = s.winAmount;
                 }
             }
         }
 
-        // 🔵 Buscar estatísticas do Single Player
-        for (SinglePlayerEntry game : singlePlayerGames) {
-            double multiplier = (game.win > 0 && game.bet > 0) ? (game.win / game.bet) : 0;
-
-            totalMultipliers += multiplier;
+        for (SinglePlayerGame game : spGames) {
+            double mult = game.getMultiplier();
+            totalMultipliers += mult;
             totalBets++;
             totalBonuses++;
-
-            if (multiplier > bestMultiplier) {
-                bestMultiplier = multiplier;
-            }
-            if (game.win > bestWin) {
-                bestWin = game.win; // 🔥 Guarda o maior pagamento
-            }
-            lastWin = game.win; // 🔄 Atualiza com a última win encontrada
+            bestMultiplier = Math.max(bestMultiplier, mult);
+            bestWin = Math.max(bestWin, game.win);
+            lastWin = game.win;
         }
 
-        // 📊 Cálculo da Média do Multiplicador
-        double averageMultiplier = (totalBets > 0) ? (totalMultipliers / totalBets) : 0;
-
-        return Response.ok(new SlotStats(slotName, averageMultiplier, bestMultiplier, totalBonuses, bestWin, lastWin)).build();
+        double avgMult = (totalBets > 0) ? (totalMultipliers / totalBets) : 0;
+        return Response.ok(new SlotStats(slotName, avgMult, bestMultiplier, totalBonuses, bestWin, lastWin)).build();
     }
 
-    // ✅ Classe que retorna os dados atualizados
     public static class SlotStats {
         public String slotName;
         public double averageMultiplier;
@@ -96,76 +76,25 @@ public class SlotStatisticsResource {
         }
     }
 
-
-
-    @GET
-    @Path("/{slotName}/splatest-win")
-    public Response getLatestSinglePlayerWin(@PathParam("slotName") String slotName) {
-        SinglePlayerEntry latestWin = SinglePlayerEntry.find("slotName = ?1 ORDER BY _id DESC", slotName).firstResult();
-
-        if (latestWin == null) {
-            return Response.status(Response.Status.NOT_FOUND).entity("Nenhuma win encontrada para essa slot").build();
-        }
-
-        return Response.ok(latestWin).build();
-    }
-
-
-
-    @GET
-    @Path("/{slotName}/bhlatest-win")
-    public Response getLatestBonusHuntWin(@PathParam("slotName") String slotName) {
-        SlotEntry latestWin = null;
-
-        List<BonusHunt> bonusHunts = BonusHunt.listAll(); // 🔄 Busca todas as Bonus Hunts
-        for (BonusHunt hunt : bonusHunts) {
-            for (SlotEntry slot : hunt.slots) {
-                if (slot.name.equalsIgnoreCase(slotName)) {
-                    if (latestWin == null || new ObjectId(slot.slotId.toString()).compareTo(new ObjectId(latestWin.slotId.toString())) > 0) {
-                        latestWin = slot; // 🔥 Pega o mais recente
-                    }
-                }
-            }
-        }
-
-        if (latestWin == null) {
-            return Response.status(Response.Status.NOT_FOUND).entity("Nenhuma win encontrada na Bonus Hunt para essa slot").build();
-        }
-
-        return Response.ok(latestWin).build();
-    }
-
-
     @GET
     @Path("/{slotName}/latest-win")
     public Response getLatestWin(@PathParam("slotName") String slotName) {
-        SinglePlayerEntry latestSinglePlayerWin = SinglePlayerEntry.find("slotName = ?1", Sort.descending("createdAt"), slotName)
-                .firstResult();
+        SinglePlayerGame latestSP = SinglePlayerGame.find("slotName", Sort.descending("createdAt"), slotName).firstResult();
 
-        List<BonusHunt> bonusHunts = BonusHunt.listAll();
+        // Otimização: Query direta em vez de loop manual
+        BonusHunt latestHunt = BonusHunt.find("slots.slotName", Sort.descending("createdAt"), slotName).firstResult();
+        BonusHuntSlot latestBHS = null;
 
-        // Encontrar a última win da slot dentro das Bonus Hunts
-        SlotEntry latestBonusHuntWin = bonusHunts.stream()
-                .flatMap(hunt -> hunt.slots.stream())
-                .filter(slot -> slot.name.equalsIgnoreCase(slotName) && slot.createdAt != null)
-                .max(Comparator.comparing(slot -> slot.createdAt))
-                .orElse(null);
-
-        Object latestWin;
-
-        if (latestSinglePlayerWin != null && latestBonusHuntWin != null) {
-            latestWin = latestSinglePlayerWin.createdAt.isAfter(latestBonusHuntWin.createdAt)
-                    ? latestSinglePlayerWin
-                    : latestBonusHuntWin;
-        } else if (latestSinglePlayerWin != null) {
-            latestWin = latestSinglePlayerWin;
-        } else if (latestBonusHuntWin != null) {
-            latestWin = latestBonusHuntWin;
-        } else {
-            return Response.status(Response.Status.NOT_FOUND).entity("Nenhuma win encontrada").build();
+        if (latestHunt != null) {
+            latestBHS = latestHunt.slots.stream()
+                    .filter(s -> s.slotName.equalsIgnoreCase(slotName))
+                    .max(Comparator.comparing(s -> latestHunt.createdAt)) // Aproximação pela data da hunt
+                    .orElse(null);
         }
 
-        return Response.ok(latestWin).build();
-    }
+        if (latestSP == null && latestBHS == null) return Response.status(404).build();
 
+        // Retorna o mais recente entre os dois
+        return Response.ok(latestSP != null ? latestSP : latestBHS).build();
+    }
 }

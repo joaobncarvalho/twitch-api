@@ -1,36 +1,31 @@
 package com.casino.resource;
 
-import com.casino.model.SinglePlayerEntry;
-import jakarta.transaction.Transactional;
+import com.casino.domain.SinglePlayerGame;
+import com.casino.domain.StreamSession;
+import com.casino.service.SessionService;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
-import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.bson.types.ObjectId;
 
-import java.util.List;
 
 @Path("/single-player")
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
 public class SinglePlayerResource {
 
+    @Inject
+    SessionService sessionService;
+
     @POST
-    @Transactional
-    public Response registerSinglePlayerGame(SinglePlayerEntry entry) {
-        if (entry.slotName == null || entry.bet <= 0) {
-            return Response.status(Response.Status.BAD_REQUEST).entity("Nome da slot e bet são obrigatórios").build();
-        }
+    public Response register(SinglePlayerGame game) {
+        StreamSession active = sessionService.getActiveSession()
+                .orElseThrow(() -> new BadRequestException("Nenhuma sessão ativa"));
 
-        entry.id = new ObjectId().toHexString(); // 🔥 Garante um ID único
-        entry.persist();
+        game.sessionId = (ObjectId) active.id;
+        game.persist();
 
-        return Response.status(Response.Status.CREATED).entity(entry).build();
-    }
+        // Se ganhou, aumenta o saldo da stream; se apostou, diminui.
+        sessionService.updateSessionBalance(game.win - game.bet);
 
-
-
-    @GET
-    public List<SinglePlayerEntry> listAll() {
-        return SinglePlayerEntry.listAll();
+        return Response.status(201).entity(game).build();
     }
 }
