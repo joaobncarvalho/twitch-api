@@ -15,9 +15,9 @@ public class Slot extends PanacheMongoEntity {
     public String name;
     @NotBlank(message = "O provider é obrigatório")
     public String provider;
-    public double rtp;
+    public Double rtp;
     public String imageUrl;
-    public int maxWin;
+    public Integer maxWin;
 
     public void setName(String name) {
         this.name = name != null ? name.trim() : null;
