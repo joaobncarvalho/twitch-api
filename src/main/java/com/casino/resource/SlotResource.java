@@ -16,8 +16,9 @@ public class SlotResource {
 
     @POST
     public Response createSlot(Slot slot) {
-        if (slot.name == null || slot.provider == null || slot.rtp <= 0) {
-            return Response.status(400).entity("Campos obrigatórios: name, provider, theoreticalRtp").build();
+        // A MAGIA AQUI 👇: Adicionamos verificação de null e usamos o .doubleValue()
+        if (slot.name == null || slot.provider == null || slot.rtp == null || slot.rtp.doubleValue() <= 0) {
+            return Response.status(400).entity("Campos obrigatórios: name, provider, rtp").build();
         }
         if (slot.imageUrl == null || slot.imageUrl.isEmpty()) {
             return Response.status(400).entity("Imagem obrigatória").build();
