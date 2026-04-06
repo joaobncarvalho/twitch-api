@@ -1,11 +1,14 @@
 package com.casino.domain;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.quarkus.mongodb.panache.common.MongoEntity;
 import io.quarkus.mongodb.panache.PanacheMongoEntity;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.bson.types.ObjectId;
 
 import java.time.Instant;
@@ -14,51 +17,53 @@ import java.util.List;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
-@MongoEntity(collection = "bonus_hunts")
+@MongoEntity(collection = "BonusHunt")
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class BonusHunt extends PanacheMongoEntity {
 
     @NotNull(message = "A caça aos bónus deve pertencer a uma sessão")
+    // CORREÇÃO: Remova @BsonProperty("_id") e @JsonProperty("_id")
+    // Use um nome claro para a FK. No Mongo, ele será salvo como 'sessionId'.
     public ObjectId sessionId;
 
     @NotBlank(message = "O nome da Bonus Hunt é obrigatório")
     public String name;
 
+    @BsonProperty("start_amount")
+    @JsonProperty("startAmount")
     public double startAmount;
 
-    // Na v2.0, usamos instâncias de uma classe interna ou dedicada para os slots da hunt
+    @BsonProperty("break_even_inicial")
+    @JsonProperty("initialBreakEven")
+    public double initialBreakEven;
+
+    @BsonProperty("totalWon")
+    @JsonProperty("totalWon")
+    public double totalWon;
+
     public List<BonusHuntSlot> slots = new ArrayList<>();
+
+    @BsonProperty("ativo")
+    public boolean active = true;
 
     public Instant createdAt = Instant.now();
 
-    // Substituímos o boolean 'ativo' por um Enum para melhor controlo de estado
     public HuntStatus status = HuntStatus.OPEN;
 
     public enum HuntStatus {
-        OPEN,       // A adicionar slots
-        COLLECTING, // A abrir os bónus em live
-        FINISHED    // Hunt concluída
+        OPEN, COLLECTING, FINISHED
     }
 
-    // --- Lógica de Domínio (Business Logic) ---
+    // --- Helpers para o Frontend ---
 
-    /**
-     * O Break Even Inicial é puramente calculado: Dinheiro gasto / número de slots.
-     * Não deve ser uma coluna na DB para evitar dessincronização.
-     */
+    @JsonProperty("id") // Garante que o React veja 'id' e não um objeto complexo
+    public String getHexId() {
+        return id != null ? id.toHexString() : null;
+    }
+
+    @JsonProperty("initialBreakEven")
     public double getInitialBreakEven() {
-        if (slots.isEmpty()) return 0;
+        if (slots == null || slots.isEmpty()) return 0;
         return startAmount / slots.size();
-    }
-
-    /**
-     * Calcula quanto falta recuperar para sair em lucro (Real-time).
-     */
-    public double getRemainingToBreakEven() {
-        double totalWon = slots.stream().mapToDouble(s -> s.winAmount).sum();
-        return Math.max(0, startAmount - totalWon);
-    }
-
-    public double getTotalWon() {
-        return slots.stream().mapToDouble(s -> s.winAmount).sum();
     }
 }

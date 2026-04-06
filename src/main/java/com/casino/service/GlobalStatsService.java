@@ -18,7 +18,7 @@ public class GlobalStatsService {
         StreamSession session = sessionService.getActiveSession()
                 .orElseThrow(() -> new jakarta.ws.rs.NotFoundException("Nenhuma sessão ativa"));
 
-        ObjectId sId = (ObjectId) session.id;
+        ObjectId sId = session.id;
 
         // 1. Somar Single Player
         double spWagered = SinglePlayerGame.find("sessionId", sId).stream()

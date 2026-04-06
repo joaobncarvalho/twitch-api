@@ -33,7 +33,7 @@ public class SessionService {
      * Procura a sessão que está atualmente em live.
      */
     public Optional<StreamSession> getActiveSession() {
-        return StreamSession.find("active", true).firstResultOptional();
+        return StreamSession.find("ativo", true).firstResultOptional();
     }
 
     /**
