@@ -16,7 +16,7 @@ public class SlotResource {
 
     @POST
     public Response createSlot(Slot slot) {
-        if (slot.name == null || slot.provider == null || slot.theoreticalRtp <= 0) {
+        if (slot.name == null || slot.provider == null || slot.rtp <= 0) {
             return Response.status(400).entity("Campos obrigatórios: name, provider, theoreticalRtp").build();
         }
         if (slot.imageUrl == null || slot.imageUrl.isEmpty()) {
