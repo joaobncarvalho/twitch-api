@@ -22,8 +22,10 @@ import java.util.List;
 public class BonusHunt extends PanacheMongoEntity {
 
     @NotNull(message = "A caça aos bónus deve pertencer a uma sessão")
-    // CORREÇÃO: Remova @BsonProperty("_id") e @JsonProperty("_id")
-    // Use um nome claro para a FK. No Mongo, ele será salvo como 'sessionId'.
+    @BsonProperty("session_id")
+    @JsonProperty("sessionId")
+    public double getInitialBreakEven() {
+
     public ObjectId sessionId;
 
     @NotBlank(message = "O nome da Bonus Hunt é obrigatório")
